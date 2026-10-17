@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.wrangler/
+output/
+*.dem
+*.dem.bz2
+.env
+.env.*
+!.env.example
+__pycache__/
