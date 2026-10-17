@@ -2,7 +2,7 @@
 
 CS2 demo link → choose a player → download a personal-training package.
 
-**Website:** designed for Cloudflare Pages + Pages Functions, without a separate Python server.
+**Website:** deploys to Cloudflare Workers with Static Assets, without a separate Python server.
 Cloudflare streams an allowlisted Valve replay download. A browser Web Worker decompresses
 and analyzes it, then creates the ZIP locally. A local `.dem` / `.dem.bz2` file is also supported
 and is never uploaded. No Steam sign-in, account, database, or end-user application installation.
@@ -13,22 +13,34 @@ these files yet. Deploying this website does not complete the Workshop integrati
 
 ## Connect GitHub to Cloudflare
 
-Use **Workers & Pages → Create application → Pages → Connect to Git**.
+Use **Workers & Pages → Create application → Import a repository** and select this repository.
+The default configuration now supports the **Worker** setup screen and its standard
+`npx wrangler deploy` command. An existing Worker project can use the settings below.
 
 | Setting | Value |
 |---|---|
 | Repository | `pandametin01/mattiak-demo-converter` |
 | Production branch | `main` |
-| Framework preset | None |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
+| Worker name | `mattiak-demo-converter` |
 | Root directory | repository root / leave empty |
 | Environment variable | `NODE_VERSION=22` |
 
 The repository must be visible to your Cloudflare GitHub integration. No application secrets
-are required. Pages discovers the root `functions/` directory and publishes `/api/demo`.
-Choose **Pages**, not a plain static upload or a Worker expecting `wrangler deploy`.
-Alternatively, with an authenticated Wrangler CLI: `npx wrangler pages deploy dist`.
+are required. `wrangler.toml` serves `dist/` as static assets and sends `/api/*` to
+`server/index.mjs`. The browser parser and its WASM are static downloads, not server-side code.
+The API uses the same streaming download handler as the original Pages adapter.
+
+Wrangler is pinned in the development dependencies so `npx wrangler deploy` does not need
+to install an unpinned version during deployment. To validate packaging without deploying:
+`npx wrangler deploy --dry-run`.
+
+The previous **Pages** adapter remains available for existing Pages users via the explicit
+configuration `wrangler.pages.toml`: after building, run
+`npx wrangler pages deploy dist --config wrangler.pages.toml` with an authenticated CLI.
+For a Git-connected Pages project, set `wrangler.pages.toml` as the root `wrangler.toml`
+on that project's deployment branch and use build command `npm run build`, output `dist`.
 
 ## Development
 
@@ -40,7 +52,7 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:8788/`. The local development server binds to loopback only.
-For exact Cloudflare emulation, use `npx wrangler pages dev dist` after the build.
+For Cloudflare Workers emulation, use `npx wrangler dev --local` after the build.
 
 To run a real demo through the same analysis core in Node (no demo is included in this repo):
 
@@ -94,7 +106,9 @@ developer setup, not an installation step for future Workshop users.
 - Browser conversion of a real Mirage demo, both `.dem` and `.dem.bz2`.
 - Player selection and ZIP download: two eligible practice duels from six deaths.
 - CFG import accepted by CS2 Tools on stock Mirage in the isolated addon; first duel positioned.
-- 14 automated tests cover import integrity, malformed data, motion validation and the download relay.
+- 17 automated tests cover import integrity, malformed data, motion validation, the download relay and Worker routing.
+- Wrangler 4.151.1 deployment dry-run passes. Local Workers runtime serves HTML, JS, CSS and
+  WASM with the expected headers; API validation and unknown routes return JSON status codes.
 
 The live Valve download and deployed Cloudflare environment still need a fresh replay link
 and a deployment check. Relay tests currently use simulated upstream responses. The experiment

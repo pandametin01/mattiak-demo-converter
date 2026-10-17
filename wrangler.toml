@@ -1,3 +1,8 @@
 name = "mattiak-demo-converter"
 compatibility_date = "2026-10-17"
-pages_build_output_dir = "dist"
+main = "server/index.mjs"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
